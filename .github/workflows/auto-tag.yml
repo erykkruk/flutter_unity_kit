@@ -1,0 +1,36 @@
+name: Auto Tag
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "unity_kit/pubspec.yaml"
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check version change
+        id: version
+        run: |
+          NEW_VERSION=$(grep '^version:' unity_kit/pubspec.yaml | sed 's/version: //')
+          git show HEAD~1:unity_kit/pubspec.yaml > /tmp/old_pubspec.yaml 2>/dev/null || echo "version: 0.0.0" > /tmp/old_pubspec.yaml
+          OLD_VERSION=$(grep '^version:' /tmp/old_pubspec.yaml | sed 's/version: //')
+          if [ "$NEW_VERSION" != "$OLD_VERSION" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create tag
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"

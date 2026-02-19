@@ -1,0 +1,20 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - example/**
+
+linter:
+  rules:
+    # Error prevention
+    - avoid_print
+    - avoid_slow_async_io
+    - cancel_subscriptions
+    - close_sinks
+
+    # Style
+    - always_declare_return_types
+    - prefer_final_locals
+    - prefer_single_quotes
+    - sort_constructors_first
+    - type_annotate_public_apis

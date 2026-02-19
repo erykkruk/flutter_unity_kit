@@ -1,0 +1,54 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement to unity_kit!
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this feature solve? What's the use case?
+      placeholder: I'm always frustrated when ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like. Include API examples if possible.
+      placeholder: |
+        ```dart
+        // Example of how the API could look
+        bridge.doSomething();
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you've considered.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of unity_kit would this affect?
+      options:
+        - Bridge (communication)
+        - Lifecycle
+        - Platform View (rendering)
+        - Asset Streaming
+        - Message Batching/Throttling
+        - C# Scripts (Unity side)
+        - Configuration
+        - Documentation
+        - Other
+    validations:
+      required: true

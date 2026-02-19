@@ -1,0 +1,12 @@
+.dart_tool/
+.claude/
+test/
+internal_doc/
+models/
+*.DS_Store
+.vscode/
+CLAUDE.md
+build/
+# iOS UnityFramework binary (too large for pub.dev, users build their own)
+ios/UnityFramework.framework/
+example/ios/UnityFramework.framework/

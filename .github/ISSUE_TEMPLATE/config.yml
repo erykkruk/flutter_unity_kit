@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: pub.dev Package
+    url: https://pub.dev/packages/unity_kit
+    about: View the package on pub.dev
+  - name: API Documentation
+    url: https://pub.dev/documentation/unity_kit/latest/
+    about: Browse the API documentation

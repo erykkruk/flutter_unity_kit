@@ -1,0 +1,4 @@
+-keep class com.unity_kit.FlutterBridgeRegistry { public static *; }
+-keep class com.unity3d.player.UnityPlayer { *; }
+-keep class com.unity3d.player.UnityPlayerForActivityOrService { *; }
+-keep class com.unity3d.player.IUnityPlayerLifecycleEvents { *; }

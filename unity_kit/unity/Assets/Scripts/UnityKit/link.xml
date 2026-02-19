@@ -1,0 +1,17 @@
+<linker>
+    <!-- Preserve types used by JsonUtility serialization (IL2CPP stripping protection) -->
+    <assembly fullname="UnityEngine">
+        <type fullname="UnityEngine.JsonUtility" preserve="all"/>
+    </assembly>
+
+    <!-- Preserve UnityKit message DTOs used via JsonUtility.FromJson<T>() -->
+    <assembly fullname="Assembly-CSharp">
+        <type fullname="UnityKit.FlutterMessage" preserve="all"/>
+        <type fullname="UnityKit.LoadAssetRequest" preserve="all"/>
+        <type fullname="UnityKit.LoadSceneRequest" preserve="all"/>
+        <type fullname="UnityKit.AssetLoadedResponse" preserve="all"/>
+        <type fullname="UnityKit.SceneLoadedResponse" preserve="all"/>
+        <type fullname="UnityKit.ProgressResponse" preserve="all"/>
+        <type fullname="UnityKit.ErrorResponse" preserve="all"/>
+    </assembly>
+</linker>

@@ -1,0 +1,41 @@
+name: Question
+description: Ask a question about usage or integration
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about unity_kit? Fill out the details below.
+
+        **Tip:** Check the [README](https://github.com/erykkruk/unity_kit#readme) and [doc/](https://github.com/erykkruk/unity_kit/tree/main/unity_kit/doc) first — your answer might already be there.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like to know?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: What area is your question about?
+      options:
+        - Setup / Installation
+        - Android Integration
+        - iOS Integration
+        - Unity Export
+        - Bridge Communication
+        - Asset Streaming
+        - Lifecycle Management
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Any relevant code, configuration, or environment details.

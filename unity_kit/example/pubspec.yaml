@@ -1,0 +1,23 @@
+name: unity_kit_example
+description: Example app showcasing the full unity_kit API.
+publish_to: 'none'
+version: 0.9.0+1
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  unity_kit:
+    path: ../
+  http: ^1.2.0
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
