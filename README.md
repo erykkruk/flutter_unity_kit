@@ -22,7 +22,7 @@ A Flutter plugin for **Unity 3D** integration. Typed bridge communication, lifec
 │   └── doc/                # API reference & asset streaming guide
 ├── doc/                    # Public guides
 │   ├── unity-export.md     # Step-by-step Unity export guide
-│   ├── unity-content-loading.md  # Content loading & generation methods
+│   ├── unity_integrations.md     # Content loading & generation methods
 │   ├── android-integration.md    # Android native architecture & known issues
 │   ├── ios-integration.md        # iOS native architecture & known issues
 │   └── architecture.md           # Overall architecture overview
@@ -87,7 +87,7 @@ cd unity_kit && dart pub publish --dry-run
 ## Guides
 
 - **[Unity Export Guide](doc/unity-export.md)** — Step-by-step: install scripts, configure build, export for Android/iOS
-- **[Unity Content Loading](doc/unity-content-loading.md)** — All methods: scenes, prefabs, AssetBundles, Addressables, glTF, runtime mesh generation, AR
+- **[Unity Content Loading](doc/unity_integrations.md)** — All methods: scenes, prefabs, AssetBundles, Addressables, glTF, runtime mesh generation, AR
 - **[Android Integration](doc/android-integration.md)** — Native layer architecture, Unity 6000 patterns, known issues & workarounds
 - **[iOS Integration](doc/ios-integration.md)** — Native layer architecture, Swift bridge, known issues & workarounds
 - **[Architecture Overview](doc/architecture.md)** — Overall design, component diagram, data flow
