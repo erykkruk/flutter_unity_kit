@@ -9,3 +9,4 @@ unity_kit/unity/Assets/.DS_Store
 unity_kit/.dart_tool/package_graph.json
 models/*
 /unity_kit/example/android/unityLibrary
+.DS_Store
