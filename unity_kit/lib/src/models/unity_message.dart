@@ -62,9 +62,19 @@ class UnityMessage {
       );
     }
 
+    final rawData = decoded['data'];
+    final Map<String, dynamic>? data;
+    if (rawData is Map<String, dynamic>) {
+      data = rawData;
+    } else if (rawData != null) {
+      data = {'value': rawData};
+    } else {
+      data = null;
+    }
+
     return UnityMessage(
       type: type,
-      data: decoded['data'] as Map<String, dynamic>?,
+      data: data,
     );
   }
 
