@@ -6,6 +6,8 @@ internal_doc/
 .vscode/
 CLAUDE.md
 build/
-# iOS UnityFramework binary (too large for pub.dev, users build their own)
+# iOS UnityFramework binary/symlink (too large for pub.dev, users build their own)
+ios/UnityFramework.framework
 ios/UnityFramework.framework/
+example/ios/UnityFramework.framework
 example/ios/UnityFramework.framework/
