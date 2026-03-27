@@ -376,8 +376,7 @@ class StreamingController {
     if (stripped != name) {
       name = stripped;
     }
-    final withoutPrefix =
-        name.replaceFirst(RegExp(r'^[a-z]+_assets_'), '');
+    final withoutPrefix = name.replaceFirst(RegExp(r'^[a-z]+_assets_'), '');
     if (withoutPrefix != name && withoutPrefix.isNotEmpty) {
       return withoutPrefix;
     }
