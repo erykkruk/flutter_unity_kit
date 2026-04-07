@@ -2,3 +2,7 @@
 build/
 *.DS_Store
 pubspec.lock
+
+# Unity exports (user must build and add their own)
+example/android/unityLibrary/
+example/ios/UnityLibrary/
