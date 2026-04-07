@@ -37,7 +37,7 @@ and asset streaming with cache management.
 ```yaml
 # pubspec.yaml
 dependencies:
-  unity_kit: ^1.0.2
+  unity_kit: ^1.0.3
 ```
 
 Or install via command line:
