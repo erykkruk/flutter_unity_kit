@@ -36,6 +36,19 @@ class UnityConfig {
     );
   }
 
+  /// Creates config for an embedded (non-fullscreen) Unity view.
+  factory UnityConfig.embedded({
+    String sceneName = 'MainScene',
+    bool transparentBackground = false,
+  }) {
+    return UnityConfig(
+      sceneName: sceneName,
+      fullscreen: false,
+      hideStatusBar: false,
+      transparentBackground: transparentBackground,
+    );
+  }
+
   /// Name of the Unity scene to load on initialization.
   final String sceneName;
 
