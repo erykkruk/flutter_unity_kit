@@ -19,6 +19,7 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
+import org.json.JSONObject
 
 /// Controller for a single Unity PlatformView instance.
 ///
@@ -78,6 +79,7 @@ class UnityKitViewController(
     private var isDisposed = false
     private var isAttached = false
     private var reattachAttempts = 0
+    private var initConfigSent = false
 
     /// Lifecycle reference for cleanup during dispose.
     var lifecycle: Lifecycle? = null
@@ -104,12 +106,28 @@ class UnityKitViewController(
                 UnityPlayerManager.createPlayer(currentActivity)
                 Log.i(TAG, "Auto-init: Unity player created successfully")
                 applyTargetFrameRate()
+                applyInitConfig()
             } catch (e: Exception) {
                 Log.e(TAG, "Auto-init: failed to create Unity player", e)
             }
         }
 
         attachUnityView()
+    }
+
+    /// Forwards the `arMode` / `sceneName` creation params to Unity as a single
+    /// `__unitykit_init` message, consumed by the Unity-side
+    /// `UnityKitGameManager`. Sent at most once; no-op if that script is absent.
+    private fun applyInitConfig() {
+        if (initConfigSent || !UnityPlayerManager.isReady) return
+
+        val sceneName = config["sceneName"] as? String ?: ""
+        val arMode = config["arMode"] as? String ?: "none"
+        val data = JSONObject().put("sceneName", sceneName).put("arMode", arMode)
+        val message = JSONObject().put("type", "__unitykit_init").put("data", data)
+
+        UnityPlayerManager.sendMessage("FlutterBridge", "ReceiveMessage", message.toString())
+        initConfigSent = true
     }
 
     /// Sends the configured targetFrameRate to Unity via UnitySendMessage.
@@ -295,7 +313,10 @@ class UnityKitViewController(
     override fun onCreated() {
         invokeOnMainThread("onUnityCreated", null)
         // Attempt to attach the view now that the player is created
-        mainHandler.post { attachUnityView() }
+        mainHandler.post {
+            attachUnityView()
+            applyInitConfig()
+        }
     }
 
     override fun onUnloaded() {

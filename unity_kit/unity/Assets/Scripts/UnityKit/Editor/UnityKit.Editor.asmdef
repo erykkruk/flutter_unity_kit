@@ -1,0 +1,22 @@
+{
+  "name": "UnityKit.Editor",
+  "rootNamespace": "UnityKit.Editor",
+  "references": [
+    "UnityKit",
+    "Unity.Addressables",
+    "Unity.Addressables.Editor",
+    "Unity.ResourceManager",
+    "UnityEditor.iOS.Extensions.Xcode"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

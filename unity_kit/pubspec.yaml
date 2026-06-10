@@ -1,6 +1,6 @@
 name: unity_kit
-description: Flutter plugin for Unity 3D integration — typed bridge, lifecycle management, and communication layer.
-version: 1.1.1
+description: Flutter plugin for Unity 3D integration — typed bridge, binary protocol, performance + AR, on Android, iOS, web & desktop.
+version: 2.0.0
 
 homepage: https://github.com/erykkruk/flutter_unity_kit
 repository: https://github.com/erykkruk/flutter_unity_kit
@@ -13,16 +13,21 @@ topics:
   - bridge
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"
-  flutter: ">=3.16.0"
+  # Web support uses modern dart:js_interop (`isA`, package:web), which
+  # requires Dart 3.4 / Flutter 3.22. Mobile-only consumers are unaffected.
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_web_plugins:
     sdk: flutter
   flutter_plugin_android_lifecycle: ^2.0.0
   http: ^1.2.0
   path_provider: ^2.1.1
   crypto: ^3.0.3
+  web: ^1.1.0
 
 dev_dependencies:
   flutter_test:
@@ -40,3 +45,12 @@ flutter:
         pluginClass: UnityKitPlugin
       ios:
         pluginClass: SwiftUnityKitPlugin
+      web:
+        pluginClass: UnityKitWeb
+        fileName: unity_kit_web.dart
+      macos:
+        pluginClass: UnityKitPlugin
+      windows:
+        pluginClass: UnityKitPlugin
+      linux:
+        pluginClass: UnityKitPlugin

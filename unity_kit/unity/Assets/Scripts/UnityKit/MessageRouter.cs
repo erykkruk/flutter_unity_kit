@@ -15,6 +15,22 @@ namespace UnityKit
             _handlers[target] = handler;
         }
 
+        /// <summary>
+        /// Registers an instance whose <see cref="UnityKitMethodAttribute"/>
+        /// methods become callable from Flutter under <paramref name="target"/>.
+        /// Incoming <c>method</c> names are dispatched by reflection.
+        /// </summary>
+        public static void RegisterMethods(string target, object instance)
+        {
+            var dispatcher = new UnityKitMethodDispatcher(instance);
+            if (!dispatcher.HasMethods)
+            {
+                UnityKitLogger.Warning(
+                    $"RegisterMethods('{target}'): no [UnityKitMethod] methods on {instance.GetType().Name}");
+            }
+            _handlers[target] = dispatcher.Dispatch;
+        }
+
         public static void Unregister(string target)
         {
             _handlers.Remove(target);

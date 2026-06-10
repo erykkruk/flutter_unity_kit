@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-06-10
+
+### Breaking
+- **Minimum SDK raised to Dart `3.4` / Flutter `3.22`** (required by the modern
+  `dart:js_interop` web implementation). Existing mobile API usage is unchanged.
+- **`UnityBridge` gained `sendBinary`, `sendBinaryWhenReady`, and
+  `performanceStream`.** Code that *calls* the bridge is unaffected; only code
+  that directly `implements UnityBridge` (e.g. custom mocks) must add the three
+  members. `UnityBridgeImpl` and the bundled mocks already do.
+
+### Added
+- **Binary protocol.** `UnityBinaryCodec` compact wire format with
+  `UnityBridge.sendBinary()` / `sendBinaryWhenReady()`, plus
+  `UnityBinaryWriter` / `UnityBinaryReader` for hand-packed payloads. Mirrored
+  on the Unity side by `UnityKitBinaryCodec` + `FlutterBridge.ReceiveBinary`.
+- **Performance monitoring.** `UnityBridge.performanceStream` emitting
+  `UnityPerformanceStats` (FPS, frame time, used memory), produced by the new
+  `UnityKitPerformanceMonitor` MonoBehaviour.
+- **AR Foundation.** `UnityConfig.ar()` factory and `UnityArMode`
+  (`none` / `passthrough` / `overlay`), wired to native creation params and a
+  dependency-free `UnityKitArSession` bridge on the Unity side.
+- **Attribute dispatch.** `[UnityKitMethod]` attribute +
+  `MessageRouter.RegisterMethods(target, instance)` to expose C# methods to
+  Flutter by name via reflection.
+- **Game manager.** `UnityKitGameManager` MonoBehaviour handling
+  load/unload scene, target frame rate, and pause/resume from Flutter.
+- **Web (WebGL) support.** `UnityKitWeb` plugin registering the
+  `com.unity_kit/unity_view` platform view via `HtmlElementView`, bridging
+  through the per-view method channel.
+- **Desktop scaffolding.** macOS / Windows / Linux plugins register the method
+  channel so the Dart bridge API is callable; embedded player view is WIP.
+- **Project validator.** Editor menu `Tools ▸ UnityKit ▸ Validate Project`.
+- `UnityConfig.toCreationParams()` as the single source of truth for the
+  Dart → native config contract (now also carries `sceneName` and `arMode`).
+
+### Changed
+- `UnityView` now renders an `HtmlElementView` on web.
+- iOS and Android now read `arMode` / `sceneName` from the view creation
+  params: `UnityArMode.overlay` enables transparent rendering automatically,
+  and both values are forwarded to Unity as a `__unitykit_init` message that
+  `UnityKitGameManager` consumes.
+
 ## [1.1.1] - 2026-06-07
 
 ### Added

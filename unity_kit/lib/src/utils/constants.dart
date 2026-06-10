@@ -6,6 +6,9 @@ abstract final class UnityMethods {
   static const String triggerAction = 'TriggerAction';
   static const String queryState = 'QueryState';
   static const String receiveMessage = 'ReceiveMessage';
+
+  /// Entry point on the Unity bridge for base64-encoded binary frames.
+  static const String receiveBinary = 'ReceiveBinary';
   static const String pause = 'Pause';
   static const String resume = 'Resume';
   static const String quit = 'Quit';
@@ -21,6 +24,9 @@ abstract final class UnitySignals {
   static const String paused = 'paused';
   static const String resumed = 'resumed';
   static const String destroyed = 'destroyed';
+
+  /// Reserved message type carrying a [UnityPerformanceStats] sample.
+  static const String performance = '__perf';
 }
 
 /// Default Unity GameObject names.

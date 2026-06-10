@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'unity_kit_method_channel.dart';
 
@@ -28,6 +30,21 @@ abstract class UnityKitPlatform {
     String methodName,
     String message,
   );
+
+  /// Send a binary frame to a Unity GameObject.
+  ///
+  /// The default implementation base64-encodes [bytes] and routes them
+  /// through [postMessage] (the string-only `UnitySendMessage` transport),
+  /// so it works on every platform without extra native wiring. Platforms
+  /// with a raw byte channel (web, desktop) may override for zero-copy
+  /// delivery.
+  Future<void> postBinaryMessage(
+    String gameObject,
+    String methodName,
+    Uint8List bytes,
+  ) async {
+    await postMessage(gameObject, methodName, base64Encode(bytes));
+  }
 
   /// Pause Unity player.
   Future<void> pause();

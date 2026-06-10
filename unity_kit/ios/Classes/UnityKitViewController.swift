@@ -55,6 +55,15 @@ public final class UnityKitViewController: NSObject, FlutterPlatformView, UnityE
     private var isChannelReady = false
     private let queueLock = NSLock()
 
+    // MARK: - Init Config (arMode / sceneName)
+
+    /// Initial scene name requested from the Dart `UnityConfig`.
+    private let sceneName: String
+    /// AR mode wire name: `none`, `passthrough`, or `overlay`.
+    private let arMode: String
+    /// Ensures the `__unitykit_init` message is forwarded to Unity only once.
+    private var didSendInitConfig = false
+
     // MARK: - Init
 
     init(
@@ -64,8 +73,14 @@ public final class UnityKitViewController: NSObject, FlutterPlatformView, UnityE
         args: Any?
     ) {
         self.viewId = viewId
-        let transparentBackground =
-            (args as? [String: Any])?["transparentBackground"] as? Bool ?? false
+        let argsDict = args as? [String: Any]
+        self.sceneName = argsDict?["sceneName"] as? String ?? ""
+        self.arMode = argsDict?["arMode"] as? String ?? "none"
+        // AR overlay implies a transparent surface so the camera feed (or
+        // Flutter content) shows through, even if the flag was not set
+        // explicitly.
+        let explicitTransparent = argsDict?["transparentBackground"] as? Bool ?? false
+        let transparentBackground = explicitTransparent || self.arMode == "overlay"
         self.containerView = UnityKitView(
             frame: frame,
             transparentBackground: transparentBackground
@@ -307,6 +322,7 @@ public final class UnityKitViewController: NSObject, FlutterPlatformView, UnityE
             UnityPlayerManager.shared.restartRendering()
 
             markChannelReady()
+            sendInitConfig()
             sendEvent(name: "onUnityCreated", data: nil)
             NSLog("[UnityKit] Unity view attached: viewId=\(viewId)")
         } else if attempt < maxAttempts {
@@ -366,6 +382,31 @@ public final class UnityKitViewController: NSObject, FlutterPlatformView, UnityE
             }
             queueLock.unlock()
         }
+    }
+
+    // MARK: - Init Config Forwarding
+
+    /// Forwards the `arMode` / `sceneName` from the Dart config to Unity as a
+    /// single `__unitykit_init` message once the player is ready. Consumed by
+    /// the Unity-side `UnityKitGameManager` (no-op if that script is absent).
+    private func sendInitConfig() {
+        guard !didSendInitConfig else { return }
+        didSendInitConfig = true
+
+        let payload: [String: Any] = [
+            "type": "__unitykit_init",
+            "data": ["sceneName": sceneName, "arMode": arMode],
+        ]
+        guard
+            let data = try? JSONSerialization.data(withJSONObject: payload),
+            let json = String(data: data, encoding: .utf8)
+        else { return }
+
+        enqueueOrSend(
+            gameObject: "FlutterBridge",
+            methodName: "ReceiveMessage",
+            message: json
+        )
     }
 
     // MARK: - Event Sending

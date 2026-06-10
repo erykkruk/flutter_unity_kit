@@ -1,15 +1,43 @@
 # unity_kit
 
-Zero external dependencies Flutter plugin for Unity 3D integration. Typed bridge
-communication, lifecycle management, readiness guard, message batching/throttling,
-and asset streaming with cache management.
+**Embed Unity 3D in Flutter with a typed, testable bridge** — send and receive
+structured messages (JSON *or* a compact binary protocol), manage the player
+lifecycle, stream live performance stats, drive AR Foundation sessions, and
+stream Addressable assets. Runs on **Android, iOS, and web (WebGL)**, with
+desktop scaffolding in place.
 
 [![pub package](https://img.shields.io/pub/v/unity_kit.svg)](https://pub.dev/packages/unity_kit)
 [![pub points](https://img.shields.io/pub/points/unity_kit)](https://pub.dev/packages/unity_kit/score)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Dart](https://img.shields.io/badge/Dart-3.2+-blue.svg)](https://dart.dev)
-[![Flutter](https://img.shields.io/badge/Flutter-3.16+-blue.svg)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-3.4+-blue.svg)](https://dart.dev)
+[![Flutter](https://img.shields.io/badge/Flutter-3.22+-blue.svg)](https://flutter.dev)
 [![Unity](https://img.shields.io/badge/Unity-2022.3_LTS+-black.svg)](https://unity.com)
+
+---
+
+## What unity_kit offers
+
+- **🎮 Embed Unity as a widget** — drop `UnityView` into your tree as a native
+  platform view (Android, iOS, web) with gesture pass-through and a placeholder.
+- **🔌 Typed two-way bridge** — `UnityBridge` with `UnityMessage`, broadcast
+  streams for messages, scenes, lifecycle, and a `MessageHandler` for
+  type-specific routing. No stringly-typed guesswork.
+- **⚡ Binary protocol** — `sendBinary()` + `UnityBinaryCodec` for compact,
+  high-frequency traffic; `UnityBinaryWriter`/`Reader` for hand-packed payloads.
+- **📊 Performance monitoring** — `performanceStream` of `UnityPerformanceStats`
+  (FPS, frame time, memory) fed by a Unity-side monitor.
+- **🪟 AR Foundation** — `UnityConfig.ar()` + `UnityArMode` (passthrough /
+  transparent overlay), wired through to the native host and Unity.
+- **🧩 Attribute dispatch** — expose C# methods to Flutter with `[UnityKitMethod]`;
+  no manual `switch` on the Unity side.
+- **♻️ Robust lifecycle** — enforced state machine, readiness guard that queues
+  messages until Unity is up, batching and throttling to tame native chatter.
+- **📦 Asset streaming** — manifest-based downloads with SHA-256 integrity, disk
+  caching, and Unity Addressables / AssetBundle loaders.
+- **🛡️ Zero raw plugin deps in your face** — typed exceptions, transparent iOS
+  rendering, three Android platform-view modes, and an Editor project validator.
+- **✅ Tested** — 670+ Dart tests plus Unity EditMode tests, with a cross-language
+  golden test locking the binary wire format on both sides.
 
 ---
 
@@ -18,16 +46,32 @@ and asset streaming with cache management.
 | Feature | Description |
 |---------|-------------|
 | **Typed Bridge** | Abstract `UnityBridge` interface with `UnityMessage` for structured Flutter-Unity communication |
-| **Lifecycle Management** | State machine with enforced transitions (`uninitialized` -> `ready` -> `paused` -> `resumed` -> `disposed`) |
+| **Binary Protocol** | Compact `UnityBinaryCodec` wire format + `bridge.sendBinary()` for high-frequency traffic, with `UnityBinaryWriter`/`UnityBinaryReader` for hand-packed payloads |
+| **Performance Monitoring** | `bridge.performanceStream` of `UnityPerformanceStats` (FPS, frame time, memory) fed by the Unity-side `UnityKitPerformanceMonitor` |
+| **AR Foundation** | `UnityConfig.ar()` + `UnityArMode` (passthrough / overlay) with a Unity-side `UnityKitArSession` bridge |
+| **Attribute Dispatch** | Expose C# methods to Flutter with `[UnityKitMethod]` + `MessageRouter.RegisterMethods(...)` — no manual switch |
+| **Lifecycle Management** | State machine with enforced transitions (`uninitialized` -> `ready` -> `paused` -> `resumed` -> `disposed`), plus the Unity-side `UnityKitGameManager` |
 | **Readiness Guard** | Queues messages before Unity is ready, auto-flushes when the engine starts |
 | **Message Batching** | Coalesces rapid-fire messages into batches to reduce native call overhead |
 | **Message Throttling** | Rate-limits outgoing messages with configurable strategy (drop, keepLatest, keepFirst) |
 | **Asset Streaming** | Manifest-based content downloading with SHA-256 integrity, local caching, and Unity Addressables integration |
-| **Platform Views** | Android (HybridComposition / VirtualDisplay / TextureLayer) and iOS (UiKitView) support |
+| **Platform Views** | Android (HybridComposition / VirtualDisplay / TextureLayer), iOS (UiKitView), and web (HtmlElementView / WebGL) |
 | **Transparent Rendering** | iOS: render Unity on top of Flutter widgets via `UnityConfig.transparentBackground` + alpha-0 camera clear |
 | **Scene Tracking** | Automatic scene load/unload events streamed from Unity to Flutter |
 | **Message Routing** | Register type-specific callbacks with `MessageHandler` for clean event dispatching |
+| **Project Validator** | Editor menu `Tools ▸ UnityKit ▸ Validate Project` checks export settings before you ship |
 | **Structured Exceptions** | Exception hierarchy: `UnityKitException` -> `BridgeException`, `CommunicationException`, `LifecycleException`, `EngineNotReadyException` |
+
+---
+
+## Platform support
+
+| Platform | Status |
+|----------|--------|
+| Android | ✅ Full (player + bridge + views) |
+| iOS | ✅ Full (player + bridge + views, transparent rendering) |
+| Web (WebGL) | ✅ Bridge + view via `HtmlElementView`; ship a Unity WebGL build and expose `window.unityKitCreateInstance` (see `UnityKitWeb` docs) |
+| macOS / Windows / Linux | 🚧 Plugin loads and the Dart bridge API is callable; embedded player view is a work in progress (tracks upstream Unity desktop-as-a-library) |
 
 ---
 
@@ -38,7 +82,7 @@ and asset streaming with cache management.
 ```yaml
 # pubspec.yaml
 dependencies:
-  unity_kit: ^1.1.0
+  unity_kit: ^2.0.0
 ```
 
 Or install via command line:
@@ -109,6 +153,36 @@ Export the Unity project as an iOS framework and include it in your Runner works
 6. Build for the target platform and export.
 
 ---
+
+### 5. Web setup (optional)
+
+Build your Unity project for **WebGL** and host the output with your Flutter web
+app, then expose the loader and let unity_kit drive it:
+
+```html
+<!-- web/index.html -->
+<script src="unity/Build/unity.loader.js"></script>
+<script>
+  // unity_kit calls this to create the player into the canvas it manages.
+  window.unityKitCreateInstance = (canvas, config) =>
+    createUnityInstance(canvas, {
+      dataUrl: 'unity/Build/unity.data',
+      frameworkUrl: 'unity/Build/unity.framework.js',
+      codeUrl: 'unity/Build/unity.wasm',
+      ...config,
+    });
+</script>
+```
+
+`UnityView` renders an `HtmlElementView` on web automatically. Unity reports
+back through `window.unityKitSendToFlutter(json)`, which unity_kit installs.
+
+### Desktop (macOS / Windows / Linux)
+
+The desktop plugins register the method channel so the Dart bridge API is
+callable, but the embedded Unity player view is still a work in progress
+(tracking upstream Unity desktop-as-a-library). `UnityView` shows a placeholder
+on desktop for now.
 
 ## Quick Start
 
@@ -206,6 +280,42 @@ handler.dispose();
 ```
 
 ---
+
+## Binary Protocol
+
+For high-frequency traffic (per-frame transforms, input deltas) the JSON
+envelope's repeated keys add up. `bridge.sendBinary()` encodes the message
+with `UnityBinaryCodec` — a compact, length-prefixed frame — and delivers it to
+the Unity `ReceiveBinary` entry point.
+
+```dart
+// Same UnityMessage API, compact wire format.
+await bridge.sendBinary(
+  UnityMessage.command('Move', {'x': 1.5, 'y': -2.0}),
+);
+
+// Queue until Unity is ready, like sendWhenReady.
+await bridge.sendBinaryWhenReady(UnityMessage.command('Spawn'));
+```
+
+For fully hand-packed payloads (no JSON at all), use the typed writer/reader:
+
+```dart
+final bytes = (UnityBinaryWriter()
+      ..writeString('player')
+      ..writeFloat64(x)
+      ..writeFloat64(y))
+    .takeBytes();
+
+final reader = UnityBinaryReader(bytes);
+final id = reader.readString();   // 'player'
+final px = reader.readFloat64();  // x
+```
+
+The frame layout is symmetric with the Unity-side `UnityKitBinaryCodec`, and the
+exact bytes are locked by cross-language golden tests on both sides. On mobile the
+frame travels base64-encoded over the existing `UnitySendMessage` transport, so no
+extra native wiring is required.
 
 ## Lifecycle Management
 
@@ -308,6 +418,31 @@ UnityView(
 > via `UnityKitLogger`. Raise an issue if you need Android support.
 
 ---
+
+## AR Foundation
+
+`UnityConfig.ar()` configures a Unity view for an AR Foundation session driven
+by the Unity project (ARCore / ARKit). `UnityArMode` controls compositing:
+
+| Mode | Effect |
+|------|--------|
+| `none` | No AR (default). |
+| `passthrough` | AR session active; Unity renders the camera feed itself (opaque). |
+| `overlay` | AR session active; Unity clears to transparent so the camera feed / Flutter content shows through. Automatically enables transparent rendering. |
+
+```dart
+UnityView(
+  config: UnityConfig.ar(sceneName: 'ArScene', mode: UnityArMode.overlay),
+  onReady: (bridge) => bridge.send(UnityMessage.command('StartTracking')),
+)
+```
+
+The `arMode` and `sceneName` are forwarded to the native host: iOS enables a
+transparent surface for `overlay`, and both platforms send a `__unitykit_init`
+message that the Unity-side `UnityKitGameManager` consumes (it starts the
+`UnityKitArSession` and exposes `InitialSceneName` / `InitialArMode`). Wire
+`UnityKitArSession`'s `onSessionStart` / `onSessionStop` events to your
+`ARSession` component to start and stop tracking.
 
 ## Asset Streaming
 
@@ -535,6 +670,58 @@ Low-level native bridge. You typically do not call this directly -- use
 
 ---
 
+### `[UnityKitMethod]` attribute dispatch
+
+Expose C# methods to Flutter by name — no manual `switch`:
+
+```csharp
+public class PlayerController : MonoBehaviour
+{
+    [UnityKitMethod]               // callable as "Jump"
+    public void Jump() { /* ... */ }
+
+    [UnityKitMethod("move")]       // callable as "move"
+    public void Move(MovePayload p) { /* p deserialized from JSON */ }
+
+    void OnEnable()  => MessageRouter.RegisterMethods("player", this);
+    void OnDisable() => MessageRouter.Unregister("player");
+}
+```
+
+From Flutter, route to it via `UnityMessage.routed('player', 'Jump')`.
+
+### UnityKitGameManager
+
+High-level lifecycle MonoBehaviour (auto-created). Handles `LoadScene`,
+`UnloadScene`, `SetTargetFrameRate`, `PauseGame` / `ResumeGame` from Flutter,
+and consumes the native `__unitykit_init` message (scene name + AR mode).
+
+### UnityKitPerformanceMonitor
+
+Samples FPS / frame time / memory and streams them to
+`bridge.performanceStream`. See [Performance monitoring](#performance-monitoring-unity--flutter).
+
+### UnityKitArSession
+
+AR session bridge (`ArSession` target). Responds to `start` / `stop` /
+`setMode`, manages the camera clear colour for overlay AR, and exposes
+`onSessionStart` / `onSessionStop` UnityEvents to hook your `ARSession`.
+
+### UnityKitBinaryCodec
+
+Decodes the base64 binary frames sent by `bridge.sendBinary()` and encodes
+frames back to Flutter. Wired into `FlutterBridge.ReceiveBinary`.
+
+### Project validator (Editor)
+
+Run **Tools ▸ UnityKit ▸ Validate Project** before exporting. It checks the
+build scene list, scripting backend, ARM64, and Android min SDK.
+
+> **Assembly definitions.** The scripts ship with `UnityKit.asmdef` (runtime),
+> `UnityKit.Editor.asmdef`, and `UnityKit.Tests.asmdef` (EditMode tests). If your
+> project lacks the Addressables or iOS-build modules, remove the matching
+> entries from the `references` list in the Inspector.
+
 ## Performance
 
 ### Message Batching (Dart)
@@ -591,6 +778,25 @@ print('Currently throttling: ${throttler.isThrottling}');
 ```
 
 ---
+
+### Performance monitoring (Unity → Flutter)
+
+Attach the `UnityKitPerformanceMonitor` MonoBehaviour in Unity and subscribe to
+`bridge.performanceStream` for live frame stats:
+
+```dart
+bridge.performanceStream.listen((stats) {
+  debugPrint('${stats.fps.toStringAsFixed(0)} fps  '
+      '${stats.frameTimeMs.toStringAsFixed(1)} ms  '
+      '${stats.usedMemoryMb.toStringAsFixed(0)} MB');
+});
+```
+
+`UnityPerformanceStats` carries `fps`, `frameTimeMs`, `usedMemoryMb`,
+`drawCalls`, and `triangles`. The bundled monitor reports FPS, frame time, and
+memory (the runtime has no cross-platform draw-call API; the fields are kept for
+projects that supply their own source). The sample interval and FPS smoothing
+are configurable on the component.
 
 ## Resolved Issues
 

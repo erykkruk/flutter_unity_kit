@@ -155,6 +155,32 @@ namespace UnityKit
         }
 
         /// <summary>
+        /// Called by Flutter via UnitySendMessage with a base64-encoded binary
+        /// frame (see <see cref="UnityKitBinaryCodec"/>). Decodes it and raises
+        /// the same events as <see cref="ReceiveMessage"/>, so binary and JSON
+        /// traffic share one handling path.
+        /// </summary>
+        public void ReceiveBinary(string base64)
+        {
+            if (string.IsNullOrEmpty(base64)) return;
+
+            try
+            {
+                var frame = UnityKitBinaryCodec.Decode(base64);
+                var json = string.IsNullOrEmpty(frame.DataJson)
+                    ? $"{{\"type\":\"{frame.Type}\"}}"
+                    : $"{{\"type\":\"{frame.Type}\",\"data\":{frame.DataJson}}}";
+
+                OnTypedMessage?.Invoke(frame.Type, json);
+                OnFlutterMessage?.Invoke(frame.Type, string.Empty, json);
+            }
+            catch (Exception e)
+            {
+                UnityKitLogger.Error($"Failed to decode binary frame: {e.Message}");
+            }
+        }
+
+        /// <summary>
         /// Called by Flutter via UnitySendMessage to set Application.targetFrameRate.
         /// Accepts a string representation of the frame rate (e.g., "60").
         /// </summary>

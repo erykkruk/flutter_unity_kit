@@ -161,6 +161,18 @@ class _UnityViewState extends State<UnityView> {
   }
 
   Widget _buildPlatformView() {
+    final creationParams = widget.config.toCreationParams();
+
+    if (kIsWeb) {
+      return HtmlElementView(
+        viewType: _viewType,
+        creationParams: creationParams,
+        onPlatformViewCreated: (viewId) {
+          UnityKitPlatform.instance.registerViewChannel(viewId);
+        },
+      );
+    }
+
     if (widget.config.transparentBackground &&
         defaultTargetPlatform == TargetPlatform.android) {
       UnityKitLogger.instance.warning(
@@ -168,15 +180,6 @@ class _UnityViewState extends State<UnityView> {
         'the flag is ignored on Android.',
       );
     }
-
-    final creationParams = <String, dynamic>{
-      'fullscreen': widget.config.fullscreen,
-      'hideStatusBar': widget.config.hideStatusBar,
-      'runImmediately': widget.config.runImmediately,
-      'platformViewMode': widget.config.platformViewMode.name,
-      'targetFrameRate': widget.config.targetFrameRate,
-      'transparentBackground': widget.config.transparentBackground,
-    };
 
     final gestureRecognizers = widget.gestureRecognizers ??
         const <Factory<OneSequenceGestureRecognizer>>{};

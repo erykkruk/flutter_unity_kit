@@ -3,12 +3,14 @@ import 'dart:async';
 import '../exceptions/exceptions.dart';
 import '../models/models.dart';
 import '../platform/unity_kit_platform.dart';
+import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'lifecycle_manager.dart';
 import 'message_batcher.dart';
 import 'message_handler.dart';
 import 'message_throttler.dart';
 import 'readiness_guard.dart';
+import 'unity_binary_codec.dart';
 
 /// Abstract interface for Flutter-Unity communication.
 ///
@@ -40,8 +42,23 @@ abstract class UnityBridge {
   /// If already ready, sends immediately.
   Future<void> sendWhenReady(UnityMessage message);
 
+  /// Send a message to Unity using the compact binary wire format.
+  ///
+  /// Encodes [message] with [UnityBinaryCodec] and delivers it to the Unity
+  /// `ReceiveBinary` entry point. Prefer this for high-frequency traffic.
+  /// Throws [EngineNotReadyException] if not ready.
+  Future<void> sendBinary(UnityMessage message);
+
+  /// Queue a binary message to be sent when Unity becomes ready.
+  Future<void> sendBinaryWhenReady(UnityMessage message);
+
   /// Stream of messages received from Unity.
   Stream<UnityMessage> get messageStream;
+
+  /// Stream of performance samples reported by Unity.
+  ///
+  /// Populated when a Unity-side performance monitor pushes frame stats.
+  Stream<UnityPerformanceStats> get performanceStream;
 
   /// Stream of lifecycle events from the Unity player.
   Stream<UnityEvent> get eventStream;
@@ -112,6 +129,8 @@ class UnityBridgeImpl implements UnityBridge {
       StreamController<UnityMessage>.broadcast();
   final StreamController<SceneInfo> _sceneController =
       StreamController<SceneInfo>.broadcast();
+  final StreamController<UnityPerformanceStats> _performanceController =
+      StreamController<UnityPerformanceStats>.broadcast();
 
   StreamSubscription<Map<String, dynamic>>? _platformSubscription;
   bool _isDisposed = false;
@@ -124,6 +143,10 @@ class UnityBridgeImpl implements UnityBridge {
 
   @override
   Stream<UnityMessage> get messageStream => _messageController.stream;
+
+  @override
+  Stream<UnityPerformanceStats> get performanceStream =>
+      _performanceController.stream;
 
   @override
   Stream<UnityEvent> get eventStream => _lifecycle.eventStream;
@@ -168,6 +191,21 @@ class UnityBridgeImpl implements UnityBridge {
     _assertNotDisposed();
 
     _guard.queueUntilReady(message, _sendToPlatform);
+  }
+
+  @override
+  Future<void> sendBinary(UnityMessage message) async {
+    _assertNotDisposed();
+    _guard.guard();
+
+    await _sendBinaryToPlatform(message);
+  }
+
+  @override
+  Future<void> sendBinaryWhenReady(UnityMessage message) async {
+    _assertNotDisposed();
+
+    _guard.queueUntilReady(message, _sendBinaryToPlatform);
   }
 
   @override
@@ -223,9 +261,43 @@ class UnityBridgeImpl implements UnityBridge {
 
     await _messageController.close();
     await _sceneController.close();
+    await _performanceController.close();
     _lifecycle.dispose();
 
     UnityKitLogger.instance.debug('Unity bridge disposed');
+  }
+
+  /// Encodes [message] to a binary frame and posts it to the platform.
+  ///
+  /// Batching/throttling do not apply to the binary path — it is meant for
+  /// callers that already control their own send cadence.
+  Future<void> _sendBinaryToPlatform(UnityMessage message) async {
+    if (_isDisposed) return;
+
+    try {
+      final bytes = UnityBinaryCodec.encode(message);
+      await _platform.postBinaryMessage(
+        message.nativeGameObject,
+        UnityMethods.receiveBinary,
+        bytes,
+      );
+      UnityKitLogger.instance.debug(
+        'Sent binary: ${message.type} (${bytes.length} bytes)',
+      );
+    } catch (e, stackTrace) {
+      UnityKitLogger.instance.error(
+        'Failed to send binary message: ${message.type}',
+        e,
+        stackTrace,
+      );
+      throw CommunicationException(
+        message: 'Failed to send binary message to Unity',
+        target: message.gameObject,
+        method: UnityMethods.receiveBinary,
+        cause: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   /// Sends a message to the platform, optionally through the throttler.
@@ -333,11 +405,32 @@ class UnityBridgeImpl implements UnityBridge {
     try {
       final message = _parseMessage(rawData);
 
+      if (message.type == UnitySignals.performance) {
+        _emitPerformance(message);
+        return;
+      }
+
       _messageHandler.handle(message);
       _messageController.add(message);
     } catch (e, stackTrace) {
       UnityKitLogger.instance.error(
         'Failed to parse Unity message',
+        e,
+        stackTrace,
+      );
+    }
+  }
+
+  /// Parses a performance message and forwards it to [performanceStream].
+  void _emitPerformance(UnityMessage message) {
+    final data = message.data;
+    if (data == null) return;
+
+    try {
+      _performanceController.add(UnityPerformanceStats.fromMap(data));
+    } catch (e, stackTrace) {
+      UnityKitLogger.instance.error(
+        'Failed to parse performance stats',
         e,
         stackTrace,
       );

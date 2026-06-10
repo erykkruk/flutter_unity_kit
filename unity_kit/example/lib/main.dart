@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
@@ -14,7 +15,6 @@ const String _kDefaultScene = 'MainScene';
 // Parameter names sent to Unity
 const String _kParamRotationX = 'rotationX';
 const String _kParamRotationY = 'rotationY';
-const String _kParamRotationZ = 'rotationZ';
 const String _kParamScale = 'scale';
 const String _kParamSpeed = 'speed';
 const String _kParamIntensity = 'intensity';
@@ -68,6 +68,12 @@ class _MainScreenState extends State<MainScreen> {
   bool _unityReady = false;
   UnityBridge? _bridge;
 
+  // Feature toggles (2.0.0)
+  UnityArMode _arMode = UnityArMode.none;
+  bool _useBinary = false;
+  UnityPerformanceStats? _perf;
+  StreamSubscription<UnityPerformanceStats>? _perfSub;
+
   // Gesture-controlled values
   double _rotationX = 0;
   double _rotationY = 0;
@@ -79,6 +85,34 @@ class _MainScreenState extends State<MainScreen> {
   // Slider-controlled values
   double _speed = 1.0;
   double _intensity = 0.5;
+
+  @override
+  void dispose() {
+    _perfSub?.cancel();
+    super.dispose();
+  }
+
+  /// Sends [message] over the binary protocol or JSON depending on the toggle.
+  void _send(UnityMessage message) {
+    final bridge = _bridge;
+    if (bridge == null) return;
+    if (_useBinary && _unityReady) {
+      bridge.sendBinary(message);
+    } else {
+      bridge.sendWhenReady(message);
+    }
+  }
+
+  void _onArModeSelected(UnityArMode mode) {
+    if (mode == _arMode) return;
+    setState(() {
+      _arMode = mode;
+      // Recreating the platform view resets readiness.
+      _unityReady = false;
+      _bridge = null;
+      _perf = null;
+    });
+  }
 
   // ---------------------------------------------------------------------------
   // Gesture handlers
@@ -108,8 +142,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _sendTransform() {
-    final bridge = _bridge;
-    if (bridge == null) return;
+    if (_bridge == null) return;
 
     final params = {
       _kParamRotationX: _rotationX,
@@ -120,7 +153,7 @@ class _MainScreenState extends State<MainScreen> {
     };
 
     for (final entry in params.entries) {
-      bridge.sendWhenReady(
+      _send(
         UnityMessage.command('SetParameter', {
           'param': entry.key,
           'value': entry.value,
@@ -134,7 +167,7 @@ class _MainScreenState extends State<MainScreen> {
   // ---------------------------------------------------------------------------
 
   void _onSliderChanged(String param, double value) {
-    _bridge?.sendWhenReady(
+    _send(
       UnityMessage.command('SetParameter', {
         'param': param,
         'value': value,
@@ -164,9 +197,7 @@ class _MainScreenState extends State<MainScreen> {
       _intensity = 0.5;
     });
 
-    _bridge?.sendWhenReady(
-      UnityMessage.command('ResetParameters', {}),
-    );
+    _send(UnityMessage.command('ResetParameters', {}));
   }
 
   // ---------------------------------------------------------------------------
@@ -182,7 +213,31 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.transparent,
         actions: [
           _StatusChip(isReady: _unityReady),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
+          IconButton(
+            onPressed: () => setState(() => _useBinary = !_useBinary),
+            icon: Icon(_useBinary ? Icons.memory : Icons.data_object),
+            color: _useBinary ? Colors.tealAccent : null,
+            tooltip: _useBinary ? 'Binary protocol (on)' : 'JSON protocol',
+          ),
+          PopupMenuButton<UnityArMode>(
+            icon: Icon(
+              _arMode == UnityArMode.none
+                  ? Icons.view_in_ar_outlined
+                  : Icons.view_in_ar,
+              color: _arMode == UnityArMode.none ? null : Colors.tealAccent,
+            ),
+            tooltip: 'AR mode',
+            onSelected: _onArModeSelected,
+            itemBuilder: (context) => [
+              for (final mode in UnityArMode.values)
+                CheckedPopupMenuItem(
+                  value: mode,
+                  checked: mode == _arMode,
+                  child: Text('AR: ${mode.name}'),
+                ),
+            ],
+          ),
           IconButton(
             onPressed: _resetAll,
             icon: const Icon(Icons.refresh),
@@ -225,38 +280,89 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
-    return GestureDetector(
-      onScaleStart: _onScaleStart,
-      onScaleUpdate: _onScaleUpdate,
-      child: UnityView(
-        config: const UnityConfig(
-          sceneName: _kDefaultScene,
-          fullscreen: false,
-          platformViewMode: PlatformViewMode.hybridComposition,
-          targetFrameRate: 60,
-          unloadOnDispose: true,
+    final config = _arMode == UnityArMode.none
+        ? const UnityConfig(
+            sceneName: _kDefaultScene,
+            fullscreen: false,
+            platformViewMode: PlatformViewMode.hybridComposition,
+            targetFrameRate: 60,
+            unloadOnDispose: true,
+          )
+        : UnityConfig.ar(sceneName: _kDefaultScene, mode: _arMode);
+
+    return Stack(
+      children: [
+        GestureDetector(
+          onScaleStart: _onScaleStart,
+          onScaleUpdate: _onScaleUpdate,
+          child: UnityView(
+            // Recreate the platform view when the AR mode changes.
+            key: ValueKey(_arMode),
+            config: config,
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+              Factory<ScaleGestureRecognizer>(ScaleGestureRecognizer.new),
+            },
+            placeholder: const UnityPlaceholder(
+              message: 'Loading 3D view...',
+              backgroundColor: Colors.black,
+              indicatorColor: Colors.deepPurple,
+            ),
+            onReady: (bridge) {
+              developer.log('UnityView ready', name: 'example');
+              _perfSub?.cancel();
+              _perfSub = bridge.performanceStream.listen((stats) {
+                if (mounted) setState(() => _perf = stats);
+              });
+              setState(() {
+                _unityReady = true;
+                _bridge = bridge;
+              });
+            },
+            onMessage: (message) {
+              developer.log(
+                'Unity message: ${message.type} ${message.data ?? ''}',
+                name: 'example',
+              );
+            },
+          ),
         ),
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<ScaleGestureRecognizer>(ScaleGestureRecognizer.new),
-        },
-        placeholder: const UnityPlaceholder(
-          message: 'Loading 3D view...',
-          backgroundColor: Colors.black,
-          indicatorColor: Colors.deepPurple,
+        if (_perf != null)
+          Positioned(
+            top: 8,
+            left: 8,
+            child: _PerformanceOverlay(stats: _perf!),
+          ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Performance overlay -- live UnityPerformanceStats
+// ---------------------------------------------------------------------------
+
+class _PerformanceOverlay extends StatelessWidget {
+  const _PerformanceOverlay({required this.stats});
+
+  final UnityPerformanceStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '${stats.fps.toStringAsFixed(0)} fps  •  '
+        '${stats.frameTimeMs.toStringAsFixed(1)} ms  •  '
+        '${stats.usedMemoryMb.toStringAsFixed(0)} MB',
+        style: const TextStyle(
+          fontSize: 11,
+          fontFamily: 'monospace',
+          color: Colors.tealAccent,
         ),
-        onReady: (bridge) {
-          developer.log('UnityView ready', name: 'example');
-          setState(() {
-            _unityReady = true;
-            _bridge = bridge;
-          });
-        },
-        onMessage: (message) {
-          developer.log(
-            'Unity message: ${message.type} ${message.data ?? ''}',
-            name: 'example',
-          );
-        },
       ),
     );
   }

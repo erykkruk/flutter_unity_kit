@@ -16,6 +16,8 @@ class MockUnityBridge implements UnityBridge {
       StreamController<SceneInfo>.broadcast();
   final StreamController<UnityLifecycleState> _lifecycleController =
       StreamController<UnityLifecycleState>.broadcast();
+  final StreamController<UnityPerformanceStats> _performanceController =
+      StreamController<UnityPerformanceStats>.broadcast();
 
   bool initializeCalled = false;
   bool pauseCalled = false;
@@ -33,6 +35,10 @@ class MockUnityBridge implements UnityBridge {
 
   @override
   Stream<UnityMessage> get messageStream => _messageController.stream;
+
+  @override
+  Stream<UnityPerformanceStats> get performanceStream =>
+      _performanceController.stream;
 
   @override
   Stream<UnityEvent> get eventStream => _eventController.stream;
@@ -55,6 +61,12 @@ class MockUnityBridge implements UnityBridge {
 
   @override
   Future<void> sendWhenReady(UnityMessage message) async {}
+
+  @override
+  Future<void> sendBinary(UnityMessage message) async {}
+
+  @override
+  Future<void> sendBinaryWhenReady(UnityMessage message) async {}
 
   @override
   Future<void> pause() async {
@@ -103,6 +115,7 @@ class MockUnityBridge implements UnityBridge {
     await _eventController.close();
     await _sceneController.close();
     await _lifecycleController.close();
+    await _performanceController.close();
   }
 }
 

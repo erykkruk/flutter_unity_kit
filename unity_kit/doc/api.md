@@ -1,5 +1,82 @@
 # unity_kit API Reference
 
+## Bridge & Messaging
+
+### UnityBridge
+
+```dart
+abstract class UnityBridge {
+  UnityLifecycleState get currentState;
+  bool get isReady;
+
+  // Streams
+  Stream<UnityMessage> get messageStream;
+  Stream<UnityPerformanceStats> get performanceStream;  // 2.0.0
+  Stream<UnityEvent> get eventStream;
+  Stream<SceneInfo> get sceneStream;
+  Stream<UnityLifecycleState> get lifecycleStream;
+
+  // Sending (JSON)
+  Future<void> send(UnityMessage message);
+  Future<void> sendWhenReady(UnityMessage message);
+
+  // Sending (binary, 2.0.0)
+  Future<void> sendBinary(UnityMessage message);
+  Future<void> sendBinaryWhenReady(UnityMessage message);
+
+  // Lifecycle
+  Future<void> initialize();
+  Future<void> pause();
+  Future<void> resume();
+  Future<void> unload();
+  Future<void> dispose();
+}
+```
+
+### UnityBinaryCodec (2.0.0)
+
+Compact, length-prefixed binary frame for `UnityMessage`. Symmetric with the
+Unity-side `UnityKitBinaryCodec`.
+
+```dart
+Uint8List bytes = UnityBinaryCodec.encode(UnityMessage.command('Move', {'x': 1}));
+UnityMessage msg = UnityBinaryCodec.decode(bytes);
+bool ok           = UnityBinaryCodec.isBinaryFrame(bytes);
+```
+
+`UnityBinaryWriter` / `UnityBinaryReader` hand-pack typed payloads:
+`writeInt32`, `writeInt64`, `writeFloat64`, `writeBool`, `writeString`
+(and matching `read*`).
+
+### UnityPerformanceStats (2.0.0)
+
+```dart
+class UnityPerformanceStats {
+  final double fps;
+  final double frameTimeMs;
+  final double usedMemoryMb;
+  final int drawCalls;
+  final int triangles;
+}
+```
+
+Emitted on `bridge.performanceStream` from the Unity-side
+`UnityKitPerformanceMonitor`.
+
+### UnityConfig / UnityArMode (2.0.0 AR)
+
+```dart
+const UnityConfig({ ..., UnityArMode arMode = UnityArMode.none });
+
+// Factory: transparent overlay AR by default.
+UnityConfig.ar({ String sceneName = 'MainScene', UnityArMode mode = UnityArMode.overlay });
+
+enum UnityArMode { none, passthrough, overlay }
+```
+
+`UnityConfig.toCreationParams()` is the canonical Dart → native map (carries
+`sceneName` and `arMode`).
+
 ## Streaming Module
 
 ### UnityAssetLoader (abstract)

@@ -1,4 +1,5 @@
 import 'platform_view_mode.dart';
+import 'unity_ar_mode.dart';
 
 /// Configuration for Unity widget initialization.
 ///
@@ -21,6 +22,7 @@ class UnityConfig {
     this.targetFrameRate = 60,
     this.platformViewMode = PlatformViewMode.hybridComposition,
     this.transparentBackground = false,
+    this.arMode = UnityArMode.none,
   });
 
   /// Creates config for fullscreen Unity rendering.
@@ -46,6 +48,22 @@ class UnityConfig {
       fullscreen: false,
       hideStatusBar: false,
       transparentBackground: transparentBackground,
+    );
+  }
+
+  /// Creates config for an AR Foundation session.
+  ///
+  /// Defaults to [UnityArMode.overlay] with a transparent background so the
+  /// camera feed shows through. Pass [mode] to switch to
+  /// [UnityArMode.passthrough] when Unity renders the camera itself.
+  factory UnityConfig.ar({
+    String sceneName = 'MainScene',
+    UnityArMode mode = UnityArMode.overlay,
+  }) {
+    return UnityConfig(
+      sceneName: sceneName,
+      arMode: mode,
+      transparentBackground: mode == UnityArMode.overlay,
     );
   }
 
@@ -76,6 +94,25 @@ class UnityConfig {
   /// surface show through. iOS-only for now.
   final bool transparentBackground;
 
+  /// AR Foundation rendering mode. Defaults to [UnityArMode.none].
+  final UnityArMode arMode;
+
+  /// Native creation parameters passed to the platform view / engine.
+  ///
+  /// This is the single source of truth for the Dart -> native config
+  /// contract. Keys mirror what the Android, iOS, web, and desktop hosts
+  /// read when they create the Unity player.
+  Map<String, dynamic> toCreationParams() => {
+        'fullscreen': fullscreen,
+        'hideStatusBar': hideStatusBar,
+        'runImmediately': runImmediately,
+        'platformViewMode': platformViewMode.name,
+        'targetFrameRate': targetFrameRate,
+        'transparentBackground': transparentBackground,
+        'sceneName': sceneName,
+        'arMode': arMode.wireName,
+      };
+
   /// Creates a copy with the given fields replaced.
   UnityConfig copyWith({
     String? sceneName,
@@ -86,6 +123,7 @@ class UnityConfig {
     int? targetFrameRate,
     PlatformViewMode? platformViewMode,
     bool? transparentBackground,
+    UnityArMode? arMode,
   }) {
     return UnityConfig(
       sceneName: sceneName ?? this.sceneName,
@@ -97,6 +135,7 @@ class UnityConfig {
       platformViewMode: platformViewMode ?? this.platformViewMode,
       transparentBackground:
           transparentBackground ?? this.transparentBackground,
+      arMode: arMode ?? this.arMode,
     );
   }
 
@@ -112,7 +151,8 @@ class UnityConfig {
           runImmediately == other.runImmediately &&
           targetFrameRate == other.targetFrameRate &&
           platformViewMode == other.platformViewMode &&
-          transparentBackground == other.transparentBackground;
+          transparentBackground == other.transparentBackground &&
+          arMode == other.arMode;
 
   @override
   int get hashCode => Object.hash(
@@ -124,6 +164,7 @@ class UnityConfig {
         targetFrameRate,
         platformViewMode,
         transparentBackground,
+        arMode,
       );
 
   @override
@@ -132,5 +173,5 @@ class UnityConfig {
       'unloadOnDispose: $unloadOnDispose, hideStatusBar: $hideStatusBar, '
       'runImmediately: $runImmediately, targetFrameRate: $targetFrameRate, '
       'platformViewMode: $platformViewMode, '
-      'transparentBackground: $transparentBackground)';
+      'transparentBackground: $transparentBackground, arMode: $arMode)';
 }
