@@ -116,6 +116,11 @@ class FakeUnityKitPlatform extends UnityKitPlatform {
     emitEvent({'event': 'onUnityUnloaded'});
   }
 
+  /// Simulate the onViewDisposed native event (active view was destroyed).
+  void emitViewDisposed({int viewId = 0}) {
+    emitEvent({'event': 'onViewDisposed', 'viewId': viewId});
+  }
+
   Future<void> close() async {
     await _eventController.close();
   }
@@ -628,6 +633,91 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(bridge.isReady, isTrue);
+    });
+  });
+
+  group('onViewDisposed event (Issue #4)', () {
+    test('resets readiness so send throws instead of hitting dead channel',
+        () async {
+      await bridge.initialize();
+      platform.emitUnityCreated();
+      await Future<void>.delayed(Duration.zero);
+      expect(bridge.isReady, isTrue);
+
+      platform.emitViewDisposed();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bridge.isReady, isFalse);
+      expect(
+        () => bridge.send(UnityMessage.command('Test')),
+        throwsA(isA<EngineNotReadyException>()),
+      );
+    });
+
+    test('transitions lifecycle back to initializing', () async {
+      await bridge.initialize();
+      platform.emitUnityCreated();
+      await Future<void>.delayed(Duration.zero);
+      expect(bridge.currentState, UnityLifecycleState.ready);
+
+      platform.emitViewDisposed();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bridge.currentState, UnityLifecycleState.initializing);
+    });
+
+    test('sendWhenReady queues after view disposal and flushes on next view',
+        () async {
+      await bridge.initialize();
+      platform.emitUnityCreated();
+      await Future<void>.delayed(Duration.zero);
+
+      platform.emitViewDisposed();
+      await Future<void>.delayed(Duration.zero);
+
+      await bridge.sendWhenReady(UnityMessage.command('LoadScene'));
+      expect(platform.sentMessages, isEmpty);
+
+      // A new UnityView attaches and Unity reports created again.
+      platform.emitUnityCreated();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(platform.sentMessages, hasLength(1));
+    });
+
+    test('is a no-op when bridge is uninitialized', () async {
+      await bridge.initialize();
+      platform.emitUnityCreated();
+      await Future<void>.delayed(Duration.zero);
+      await bridge.unload();
+      expect(bridge.currentState, UnityLifecycleState.uninitialized);
+
+      platform.emitViewDisposed();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bridge.currentState, UnityLifecycleState.uninitialized);
+      expect(bridge.isReady, isFalse);
+    });
+
+    test('re-initialize after unload does not duplicate platform events',
+        () async {
+      await bridge.initialize();
+      platform.emitUnityCreated();
+      await Future<void>.delayed(Duration.zero);
+
+      await bridge.unload();
+      await bridge.initialize();
+      platform.emitUnityCreated();
+      await Future<void>.delayed(Duration.zero);
+
+      final received = <UnityMessage>[];
+      final sub = bridge.messageStream.listen(received.add);
+
+      platform.emitUnityMessage('{"type":"ping"}');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(received, hasLength(1));
+      await sub.cancel();
     });
   });
 

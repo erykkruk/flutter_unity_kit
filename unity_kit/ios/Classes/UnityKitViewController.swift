@@ -462,6 +462,20 @@ public final class UnityKitViewController: NSObject, FlutterPlatformView, UnityE
         UnityPlayerManager.shared.removeListener(self)
         FlutterBridgeRegistry.unregister(viewId: Int(viewId))
 
+        // Tell Dart this view's channel is going away so the bridge can queue
+        // messages until the next view attaches, instead of hitting a dead
+        // channel with MissingPluginException (Issue #4). The channel is
+        // captured directly because dispose() may run from deinit, where
+        // `[weak self]` would already be nil.
+        let channel = self.channel
+        if Thread.isMainThread {
+            channel.invokeMethod("onViewDisposed", arguments: nil)
+        } else {
+            DispatchQueue.main.async {
+                channel.invokeMethod("onViewDisposed", arguments: nil)
+            }
+        }
+
         channel.setMethodCallHandler(nil)
         containerView.detachUnityView()
 

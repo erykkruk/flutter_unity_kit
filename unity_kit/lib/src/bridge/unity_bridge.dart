@@ -167,6 +167,7 @@ class UnityBridgeImpl implements UnityBridge {
     _lifecycle.transition(UnityLifecycleState.initializing);
     UnityKitLogger.instance.info('Initializing Unity bridge');
 
+    await _platformSubscription?.cancel();
     _platformSubscription = _platform.events.listen(
       _handlePlatformEvent,
       onError: _handlePlatformError,
@@ -356,6 +357,8 @@ class UnityBridgeImpl implements UnityBridge {
         _onUnitySceneLoaded(event);
       case 'onUnityUnloaded':
         _onUnityUnloaded();
+      case 'onViewDisposed':
+        _onViewDisposed();
       case 'onError':
         _onError(event);
       default:
@@ -477,6 +480,30 @@ class UnityBridgeImpl implements UnityBridge {
     _guard.reset();
     _lifecycle.reset();
     UnityKitLogger.instance.info('Unity player unloaded');
+  }
+
+  /// Called when the active platform view was disposed natively.
+  ///
+  /// The Unity player itself survives (it is a process-wide singleton), but
+  /// until a new [UnityView] attaches there is no channel that can deliver
+  /// messages — sending would hit a dead channel and throw
+  /// `MissingPluginException`. Resetting the readiness guard makes
+  /// [sendWhenReady] queue messages until the next `onUnityCreated`, and
+  /// [send] throw [EngineNotReadyException] instead.
+  void _onViewDisposed() {
+    _guard.reset();
+
+    final state = _lifecycle.currentState;
+    if (state != UnityLifecycleState.uninitialized &&
+        state != UnityLifecycleState.disposed) {
+      _lifecycle.reset();
+      _lifecycle.transition(UnityLifecycleState.initializing);
+    }
+
+    UnityKitLogger.instance.info(
+      'Active Unity view disposed — '
+      'messages are queued until a new view attaches',
+    );
   }
 
   /// Called when an error event is received from the platform.

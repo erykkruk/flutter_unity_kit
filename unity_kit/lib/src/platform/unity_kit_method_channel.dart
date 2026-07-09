@@ -25,6 +25,11 @@ class UnityKitMethodChannel extends UnityKitPlatform {
   Future<Object?> _handlePlatformCall(MethodCall call, int viewId) async {
     if (_isDisposed) return null;
 
+    if (call.method == 'onViewDisposed') {
+      _onViewDisposed(viewId);
+      return null;
+    }
+
     final event = <String, Object?>{
       'event': call.method,
       'viewId': viewId,
@@ -40,6 +45,25 @@ class UnityKitMethodChannel extends UnityKitPlatform {
 
     _eventController.add(Map<String, dynamic>.from(event));
     return null;
+  }
+
+  /// Handles the native `onViewDisposed` notification for [viewId].
+  ///
+  /// The native platform view was destroyed (e.g. its widget was popped),
+  /// so its channel can no longer deliver messages. The stale channel is
+  /// removed, and the event is forwarded to [events] only when the disposed
+  /// view is still the active one — during navigation a new view may already
+  /// have registered, in which case the old view's disposal is irrelevant.
+  void _onViewDisposed(int viewId) {
+    final channel = _channels.remove(viewId);
+    channel?.setMethodCallHandler(null);
+
+    if (viewId == _activeViewId) {
+      _eventController.add(<String, dynamic>{
+        'event': 'onViewDisposed',
+        'viewId': viewId,
+      });
+    }
   }
 
   @override

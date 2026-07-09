@@ -169,5 +169,63 @@ void main() {
 
       await sub.cancel();
     });
+
+    group('onViewDisposed (Issue #4)', () {
+      Future<void> emitNativeViewDisposed(int viewId) async {
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+        const codec = StandardMethodCodec();
+        final data = codec.encodeMethodCall(
+          const MethodCall('onViewDisposed'),
+        );
+        await messenger.handlePlatformMessage(
+          'com.unity_kit/unity_view_$viewId',
+          data,
+          (ByteData? reply) {},
+        );
+      }
+
+      test('forwards event to stream when active view is disposed', () async {
+        final events = <Map<String, dynamic>>[];
+        final sub = platform.events.listen(events.add);
+
+        // Register view 0 as active and dispose it natively.
+        platform.registerViewChannel(0);
+        await emitNativeViewDisposed(0);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(events, hasLength(1));
+        expect(events.last['event'], 'onViewDisposed');
+        expect(events.last['viewId'], 0);
+
+        await sub.cancel();
+      });
+
+      test('swallows event when a newer view is already active', () async {
+        final events = <Map<String, dynamic>>[];
+        final sub = platform.events.listen(events.add);
+
+        // View 1 registered before view 0 is disposed (push-over navigation).
+        platform.registerViewChannel(0);
+        platform.registerViewChannel(1);
+        await emitNativeViewDisposed(0);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(events, isEmpty);
+
+        await sub.cancel();
+      });
+
+      test('removes stale channel so a new view can re-register', () async {
+        platform.registerViewChannel(0);
+        await emitNativeViewDisposed(0);
+        await Future<void>.delayed(Duration.zero);
+
+        // Re-registering the same viewId creates a fresh channel entry.
+        platform.registerViewChannel(0);
+        final result = await platform.isReady();
+        expect(result, isTrue);
+      });
+    });
   });
 }

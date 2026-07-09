@@ -152,6 +152,12 @@ class UnityKitViewController(
         mainHandler.removeCallbacksAndMessages(null)
         lifecycle?.removeObserver(this)
 
+        // Tell Dart this view's channel is going away so the bridge can queue
+        // messages until the next view attaches, instead of hitting a dead
+        // channel with MissingPluginException (Issue #4). Called directly
+        // (not via invokeOnMainThread) because isDisposed is already true.
+        notifyViewDisposed()
+
         methodChannel.setMethodCallHandler(null)
         FlutterBridgeRegistry.unregister(viewId)
         UnityPlayerManager.removeListener(this)
@@ -461,6 +467,24 @@ class UnityKitViewController(
     }
 
     // --- MethodChannel Helpers ---
+
+    /// Notifies Dart that this view's channel is being disposed.
+    ///
+    /// MethodChannel calls must run on the main thread; invokeMethod is only
+    /// outbound here, so it still works after the inbound handler is cleared.
+    private fun notifyViewDisposed() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            methodChannel.invokeMethod("onViewDisposed", null)
+        } else {
+            mainHandler.post {
+                try {
+                    methodChannel.invokeMethod("onViewDisposed", null)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to notify view disposal", e)
+                }
+            }
+        }
+    }
 
     /// Invokes a Flutter MethodChannel callback on the main thread.
     private fun invokeOnMainThread(method: String, arguments: Any?) {

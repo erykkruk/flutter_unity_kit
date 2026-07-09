@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-07-09
+
+### Fixed
+- **`MissingPluginException` after the active `UnityView` is disposed**
+  ([#4](https://github.com/erykkruk/flutter_unity_kit/issues/4)). When the
+  platform view backing the active `UnityView` was destroyed (e.g. the screen
+  was popped), the Dart side kept targeting the dead
+  `com.unity_kit/unity_view_N` channel and the bridge stayed `ready`, so the
+  next `send`/`sendWhenReady` crashed with `MissingPluginException`. Native
+  (iOS + Android) now emits an `onViewDisposed` notification before tearing
+  the channel down; the bridge resets readiness back to `initializing`, so
+  `sendWhenReady()` queues messages until the next `UnityView` attaches and
+  `send()` throws a typed `EngineNotReadyException` instead.
+- **Duplicate platform events after re-`initialize()`.** Calling
+  `UnityBridgeImpl.initialize()` again after `unload()` subscribed to the
+  platform event stream a second time, duplicating every message/event.
+  The previous subscription is now cancelled first.
+
 ## [2.0.0] - 2026-06-10
 
 ### Breaking
