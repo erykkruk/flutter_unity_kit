@@ -213,6 +213,8 @@ cd unity_kit && dart pub publish --dry-run  # Publish check
 
 ## Guides
 
+> **Hosted documentation:** a step-by-step integration guide with troubleshooting is also available at **[codigee.com/open-source/unity-kit](https://codigee.com/open-source/unity-kit)**.
+
 | Guide | What's in it |
 |-------|-------------|
 | **[Unity Export](doc/unity-export.md)** | Step-by-step: install scripts, configure build, export for Android/iOS/WebGL |
