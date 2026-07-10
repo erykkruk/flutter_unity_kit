@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-07-10
+
+### Docs
+- Linked the full hosted documentation at
+  [codigee.com/open-source/unity-kit](https://codigee.com/open-source/unity-kit)
+  from `pubspec.yaml` (`documentation:`) and added a prominent **Documentation**
+  section to the README covering the step-by-step walkthrough, native setup
+  (Android/iOS), Unity export, content loading, API reference, asset streaming,
+  architecture, and FAQ.
+
 ## [2.0.1] - 2026-07-09
 
 ### Fixed

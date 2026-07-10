@@ -1,5 +1,7 @@
 .dart_tool/
 build/
+.gradle/
+android/.gradle/
 *.DS_Store
 pubspec.lock
 

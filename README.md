@@ -8,6 +8,24 @@ A Flutter plugin for **Unity 3D** integration. Embed Unity content in Flutter ap
 
 ---
 
+## 📚 Documentation
+
+Full hosted documentation — a complete zero-to-running walkthrough, native setup guides, API reference and troubleshooting — lives at **[codigee.com/open-source/unity-kit](https://codigee.com/open-source/unity-kit)**.
+
+| Guide | What's in it |
+|-------|-------------|
+| [Step-by-step walkthrough](https://codigee.com/open-source/unity-kit/step-by-step) | Zero-to-running: every file, path, and edit |
+| [Unity export](https://codigee.com/open-source/unity-kit/unity-export) | Configure & export for Android, iOS, WebGL |
+| [Android setup](https://codigee.com/open-source/unity-kit/android) | Native layer, Gradle, rendering |
+| [iOS setup](https://codigee.com/open-source/unity-kit/ios) | UnityFramework embedding, Metal crash prevention |
+| [Content loading](https://codigee.com/open-source/unity-kit/content-loading) | Scenes, prefabs, AssetBundles at runtime |
+| [API reference](https://codigee.com/open-source/unity-kit/api) | Class signatures & parameters |
+| [Asset streaming](https://codigee.com/open-source/unity-kit/asset-streaming) | CDN manifest + verified cache |
+| [Architecture](https://codigee.com/open-source/unity-kit/architecture) | Bridge, lifecycle, streams |
+| [FAQ](https://codigee.com/open-source/unity-kit/faq) | Troubleshooting common issues |
+
+---
+
 ## How It Works
 
 Flutter handles UI (screens, buttons, navigation). Unity handles 3D (rendering, game logic). They run in the same app but are separate worlds -- they talk by sending JSON messages through a native bridge.

@@ -1,9 +1,10 @@
 name: unity_kit
 description: Flutter plugin for Unity 3D integration — typed bridge, binary protocol, performance + AR, on Android, iOS, web & desktop.
-version: 2.0.1
+version: 2.0.2
 
 homepage: https://github.com/erykkruk/flutter_unity_kit
 repository: https://github.com/erykkruk/flutter_unity_kit
+documentation: https://codigee.com/open-source/unity-kit
 
 topics:
   - unity

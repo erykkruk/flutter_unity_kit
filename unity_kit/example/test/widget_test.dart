@@ -18,7 +18,8 @@ void main() {
     expect(find.byTooltip('Reset all'), findsOneWidget);
   });
 
-  testWidgets('AR mode menu lists every UnityArMode', (WidgetTester tester) async {
+  testWidgets('AR mode menu lists every UnityArMode',
+      (WidgetTester tester) async {
     await tester.pumpWidget(const UnityKitExampleApp());
     await tester.pump();
 
