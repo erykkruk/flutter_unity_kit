@@ -80,6 +80,7 @@ class UnityKitViewController(
     private var isAttached = false
     private var reattachAttempts = 0
     private var initConfigSent = false
+    private var unityCreatedEventSent = false
 
     /// Lifecycle reference for cleanup during dispose.
     var lifecycle: Lifecycle? = null
@@ -317,7 +318,7 @@ class UnityKitViewController(
     }
 
     override fun onCreated() {
-        invokeOnMainThread("onUnityCreated", null)
+        notifyUnityCreatedOnce()
         // Attempt to attach the view now that the player is created
         mainHandler.post {
             attachUnityView()
@@ -326,6 +327,7 @@ class UnityKitViewController(
     }
 
     override fun onUnloaded() {
+        unityCreatedEventSent = false
         invokeOnMainThread("onUnityUnloaded", null)
     }
 
@@ -344,6 +346,7 @@ class UnityKitViewController(
         if (isAttached && containerView.childCount > 0) {
             Log.d(TAG, "Unity view already attached, skipping")
             UnityPlayerManager.focus()
+            notifyUnityCreatedOnce()
             return
         }
 
@@ -379,6 +382,7 @@ class UnityKitViewController(
         applyZOrderFix(unityView)
 
         isAttached = true
+        notifyUnityCreatedOnce()
 
         // Activate Unity rendering: windowFocusChanged + pause/resume
         UnityPlayerManager.focus()
@@ -398,6 +402,18 @@ class UnityKitViewController(
         }, 500)
 
         Log.d(TAG, "Unity view attached to container for viewId=$viewId")
+    }
+
+    /// Notifies this Flutter view that Unity is ready exactly once.
+    ///
+    /// UnityPlayerManager reuses an existing player when a platform view is
+    /// recreated. In that case Unity does not fire onCreated() again, so the
+    /// notification must also be sent after the reused Unity view is attached.
+    private fun notifyUnityCreatedOnce() {
+        if (isDisposed || unityCreatedEventSent) return
+
+        unityCreatedEventSent = true
+        invokeOnMainThread("onUnityCreated", null)
     }
 
     /// Detaches the Unity view from the container without destroying it.
