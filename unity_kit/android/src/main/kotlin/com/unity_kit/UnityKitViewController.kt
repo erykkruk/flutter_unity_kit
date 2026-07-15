@@ -417,10 +417,15 @@ class UnityKitViewController(
     }
 
     /// Detaches the Unity view from the container without destroying it.
+    ///
+    /// Resets the created-notification flag so a later reattach (e.g. after
+    /// quitPlayer + createPlayer, where onUnloaded never fires because
+    /// UnityPlayerManager.cleanup() clears listeners) notifies Flutter again.
     private fun detachUnityView() {
         containerView.setOnTouchListener(null)
         containerView.removeAllViews()
         isAttached = false
+        unityCreatedEventSent = false
     }
 
     /// Fixes Unity's SurfaceView Z-order so it renders within its container
