@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-08-24
+
+### Fixed
+
+- Declared the analyzer excludes Flutter's `AnalysisOptionsMigration`
+  requires, in both `analysis_options.yaml` and the example's. Without them
+  `flutter pub get` rewrote those files, leaving the tree dirty, and
+  `pub publish` refuses to publish from a dirty git state: the 2.1.0 publish
+  job failed on exactly that. No code change; 2.1.1 is 2.1.0 plus a
+  publishable tree.
+
 ## [2.1.0] - 2026-08-24
 
 ### Added
