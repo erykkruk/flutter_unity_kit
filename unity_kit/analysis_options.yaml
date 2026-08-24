@@ -3,6 +3,18 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   exclude:
     - example/**
+    # The rest are required by Flutter's AnalysisOptionsMigration, which
+    # otherwise rewrites this file during `flutter pub get` and leaves the
+    # tree dirty for `pub publish` (which refuses to publish from a dirty
+    # git state). Every platform directory is listed, not just the ones
+    # present today, so adding a platform later cannot break the release.
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:

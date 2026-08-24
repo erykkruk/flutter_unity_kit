@@ -26,3 +26,16 @@ linter:
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+
+analyzer:
+  # Required by Flutter's AnalysisOptionsMigration: without these it rewrites
+  # this file during `flutter pub get`, leaving the tree dirty for
+  # `pub publish`, which refuses to publish from a dirty git state.
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
