@@ -1,13 +1,51 @@
-## [2.0.3] - 2026-07-15
-
-- Maintenance release.
-
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.1.0] - 2026-08-24
+
+### Added
+
+- **Unity environment preflight.** `UnityKitPlatform.instance.environment()`
+  reports what the build actually ships, before any Unity view is mounted:
+  which player runtime was found (`unity6`,`legacy`, `unityFramework` or
+  `absent`), its class name, the device page size, the ABI and the platform
+  version.
+- **16 KB page size check (Android).** Google Play requires every native
+  library in an app targeting Android 15 (API 35) or newer to be aligned to
+  16 KB. The probe reads the `p_align` of each `PT_LOAD` segment straight
+  out of the shipped `.so` files, so `failsPageSizeRequirement` and
+  `unalignedLibraries` report what the binary says rather than what the
+  Unity version claims. Unity satisfies the rule from 2022.3.56 and from
+  Unity 6, but an app can still carry an older prebuilt library.
+- `UnityEnvironment`, `UnityPlayerRuntime`, `PageAlignmentStatus` and
+  `NativeLibraryReport`, all decoding unknown wire values to their unknown
+  variant so a newer native side cannot break an older Dart side.
+- `UnityEnvironment.summary`, a one-line report for logs and debug overlays.
+
+### Changed
+
+- `flutter_lints` raised to `^6.0.0`; the package analyzes clean under the
+  stricter rule set.
+- README quick start now shows the current version constraint (it still
+  advertised `^0.9.2`).
+
+### Notes
+
+- `environment()` has a default implementation returning
+  `UnityEnvironment.unknown`, so an existing custom `UnityKitPlatform`
+  keeps compiling. Platforms without a probe (desktop, web) answer the same
+  rather than throwing.
+- iOS reports the runtime and page size but no alignment: the 16 KB rule is
+  an Android packaging requirement and faking a verdict there would be
+  misleading.
+
+## [2.0.3] - 2026-07-15
+
+- Maintenance release.
 
 ## [2.0.2] - 2026-07-10
 

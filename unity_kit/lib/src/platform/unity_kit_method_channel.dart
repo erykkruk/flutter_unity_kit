@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+import '../models/unity_environment.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'unity_kit_platform.dart';
@@ -13,6 +14,30 @@ class UnityKitMethodChannel extends UnityKitPlatform {
       StreamController<Map<String, dynamic>>.broadcast();
   bool _isDisposed = false;
   int _activeViewId = 0;
+
+  /// Channel for the view-independent environment check.
+  static const MethodChannel _environmentChannel =
+      MethodChannel(ChannelNames.environmentChannel);
+
+  @override
+  Future<UnityEnvironment> environment() async {
+    try {
+      final result =
+          await _environmentChannel.invokeMethod<Map<Object?, Object?>>(
+        'environment',
+      );
+      if (result == null) return UnityEnvironment.unknown;
+      return UnityEnvironment.fromMap(result);
+    } on MissingPluginException {
+      // Desktop and web have no probe; an absent answer is not an error.
+      return UnityEnvironment.unknown;
+    } on PlatformException catch (error) {
+      UnityKitLogger.instance.warning(
+        'Environment probe failed: ${error.code} ${error.message}',
+      );
+      return UnityEnvironment.unknown;
+    }
+  }
 
   MethodChannel _channelForView(int viewId) {
     return _channels.putIfAbsent(viewId, () {

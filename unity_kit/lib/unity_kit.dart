@@ -18,7 +18,7 @@
 ///   onReady: (bridge) => bridge.send(UnityMessage.command('Init')),
 /// )
 /// ```
-library unity_kit;
+library;
 
 export 'src/bridge/bridge.dart';
 export 'src/exceptions/exceptions.dart';

@@ -41,4 +41,8 @@ abstract final class ChannelNames {
 
   /// The EventChannel name for Unity events.
   static const String eventChannel = 'com.unity_kit/unity_events';
+
+  /// View-independent channel used for the environment preflight check, so
+  /// it can run before any Unity view exists.
+  static const String environmentChannel = 'com.unity_kit/environment';
 }

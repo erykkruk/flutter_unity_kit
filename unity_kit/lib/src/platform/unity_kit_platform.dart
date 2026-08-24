@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../models/unity_environment.dart';
 import 'unity_kit_method_channel.dart';
 
 /// Abstract platform interface for Unity player operations.
@@ -67,6 +68,18 @@ abstract class UnityKitPlatform {
   /// Bind a MethodChannel for [viewId] and set it as the active channel
   /// for all subsequent platform calls.
   void registerViewChannel(int viewId);
+
+  /// Inspects the Unity runtime this build actually ships.
+  ///
+  /// Answers before any view exists, so a missing Unity runtime or a
+  /// native library that would fail Google Play's 16 KB page size rule is
+  /// caught at startup rather than as a blank Unity surface or a rejected
+  /// upload.
+  ///
+  /// Defaults to [UnityEnvironment.unknown] rather than being abstract, so
+  /// an existing custom [UnityKitPlatform] keeps compiling; implementations
+  /// that cannot answer return the same instead of throwing.
+  Future<UnityEnvironment> environment() async => UnityEnvironment.unknown;
 
   /// Stream of raw events from native side.
   Stream<Map<String, dynamic>> get events;

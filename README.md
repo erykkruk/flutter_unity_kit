@@ -75,6 +75,7 @@ Flutter (Dart)                                    Unity (C#)
 | **Message Throttling** | Rate-limits outgoing messages with configurable strategies (drop / keepLatest / keepFirst). |
 | **Asset Streaming** | Download Unity bundles from CDN, cache locally with SHA-256 verification, load via Addressables. |
 | **Unity 6 Support** | Reflection-based player creation handles both legacy `UnityPlayer` and Unity 6's `UnityPlayerForActivityOrService`. |
+| **Environment Preflight** | `environment()` reports which runtime the build actually ships and whether its native libraries pass Google Play's 16 KB page size rule. |
 | **Platform Views** | Android (Virtual Display) and iOS (UiKitView composition). |
 
 ---
@@ -86,7 +87,7 @@ Flutter (Dart)                                    Unity (C#)
 ```yaml
 # pubspec.yaml
 dependencies:
-  unity_kit: ^0.9.2
+  unity_kit: ^2.1.0
 ```
 
 ### 2. Minimal Flutter code
@@ -272,6 +273,48 @@ ProGuard/R8 can strip classes used via reflection or JNI. `unity_kit`'s `Build.c
 2. Check your handler's target name matches what Flutter sends
 3. Check Unity Console for `[UnityKit] No handler registered for target: xxx`
 4. On iOS: verify `UnityKitNativeBridge.mm` is in `Assets/Plugins/iOS/`
+
+### Environment preflight
+
+Before mounting a view, ask what the build actually carries:
+
+```dart
+final env = await UnityKitPlatform.instance.environment();
+
+if (!env.isReadyForUnity) {
+  // No Unity runtime in this build: a UnityView would come up blank.
+  debugPrint(env.summary);
+}
+
+if (env.failsPageSizeRequirement) {
+  // Google Play rejects updates targeting Android 15+ whose native
+  // libraries are aligned to less than 16 KB.
+  debugPrint('Not 16 KB aligned: '
+      '${env.unalignedLibraries.map((l) => l.name).join(', ')}');
+}
+```
+
+`env.summary` prints a single line for logs, for example:
+
+```
+Unity runtime: unity6 (com.unity3d.player.UnityPlayerForActivityOrService),
+abi arm64-v8a, device page size 16384 B, 16 KB alignment: aligned
+```
+
+Two Unity upgrade traps this catches:
+
+- **The Unity 6 class rename.** `env.runtime` says which player class was
+  found, so a build that silently shipped without the Unity libraries is
+  obvious instead of showing up as an empty surface.
+- **16 KB page sizes.** Since 1 November 2025, Google Play requires every
+  native library in an app targeting Android 15 (API 35) or newer to be
+  aligned to 16 KB. Unity satisfies this from **2022.3.56** and from
+  **Unity 6**, but an app can still ship an older prebuilt `.so`. The check
+  reads the `p_align` of each `PT_LOAD` segment out of the shipped files, so
+  it reports the binary's truth rather than the Unity version's claim.
+
+iOS reports the runtime and page size but no alignment verdict: the 16 KB
+rule is an Android packaging requirement.
 
 ### Unity 6 compatibility
 
