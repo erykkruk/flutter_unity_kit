@@ -77,6 +77,48 @@ enum UnityArMode { none, passthrough, overlay }
 `UnityConfig.toCreationParams()` is the canonical Dart → native map (carries
 `sceneName` and `arMode`).
 
+## Environment Preflight (2.1.0)
+
+### UnityKitPlatform.environment()
+
+```dart
+Future<UnityEnvironment> environment()
+```
+
+Reports what the build actually ships, before any Unity view is mounted.
+Never throws: platforms without a probe answer `UnityEnvironment.unknown`.
+
+### UnityEnvironment
+
+| Member | Type | Meaning |
+|---|---|---|
+| `runtime` | `UnityPlayerRuntime` | `unity6`, `legacy`, `unityFramework`, `absent` or `unknown` |
+| `playerClassName` | `String?` | Class the plugin would instantiate |
+| `pageAlignment` | `PageAlignmentStatus` | Worst status across `libraries` |
+| `devicePageSizeBytes` | `int` | 16384 on a 16 KB device, 4096 on a classic one |
+| `abi` | `String?` | Primary ABI, for example `arm64-v8a` |
+| `libraries` | `List<NativeLibraryReport>` | Inspected `.so` files, Unity's own first |
+| `platformVersion` | `String?` | Android release or iOS system version |
+| `isReadyForUnity` | `bool` | A Unity runtime is present |
+| `failsPageSizeRequirement` | `bool` | At least one library is aligned below 16 KB |
+| `unalignedLibraries` | `List<NativeLibraryReport>` | The offending files |
+| `summary` | `String` | One-line report for logs |
+
+`failsPageSizeRequirement` is only ever true when a library was actually
+read and found unaligned: an undetermined check is not a failure.
+
+### NativeLibraryReport
+
+| Member | Type | Meaning |
+|---|---|---|
+| `name` | `String` | File name, for example `libunity.so` |
+| `alignment` | `PageAlignmentStatus` | `aligned`, `unaligned` or `unknown` |
+| `alignmentBytes` | `int` | Smallest `p_align` across `PT_LOAD` segments; 0 when unknown |
+
+Android reads the alignment out of the ELF program headers of the shipped
+libraries. iOS reports the runtime and page size but leaves alignment
+`unknown`: the 16 KB rule is an Android packaging requirement.
+
 ## Streaming Module
 
 ### UnityAssetLoader (abstract)
