@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-11-03
+
+### Fixed
+
+- **Android build failing on AGP 9** with `Script compilation errors` in `unity_kit/android/build.gradle.kts`, which is what `flutter create` now generates. The plugin build script is now Groovy, with the same settings, and still builds on AGP 8.
+- **Android build failing with `:unity_kit is currently compiled against android-35`** when `flutter_plugin_android_lifecycle` requires API 36. `compileSdk` is now 36. This does not change `minSdk` or runtime behaviour.
+
 ## [2.2.0] - 2026-10-15
 
 ### Added
